@@ -11,8 +11,8 @@ const baseURL = "https://na1.api.riotgames.com/lol/"
 const summonerURL = `${baseURL}summoner/v4/summoners/by-name/`
 const leaguev4URL = `${baseURL}league/v4/entries/by-summoner/`
 
-const DISCORD_TOKEN = 'MTA4NTU5NDk3MDg1MDg2MTA1Ng.GtBaT6.13LrmCIBPaQmwr9Gxepjkj0mQy_ddr1EfUjVTg';
-const RIOT_API_KEY = 'RGAPI-222bd06e-c114-48bd-b53e-c820fe0240e0';
+/*const DISCORD_TOKEN = DISCORD API KEY;
+const RIOT_API_KEY = RIOT API KEY; */
 
 const userData = {}
 
