@@ -11,8 +11,8 @@ const baseURL = "https://na1.api.riotgames.com/lol/"
 const summonerURL = `${baseURL}summoner/v4/summoners/by-name/`
 const leaguev4URL = `${baseURL}league/v4/entries/by-summoner/`
 
-/*const DISCORD_TOKEN = DISCORD API KEY;
-const RIOT_API_KEY = RIOT API KEY; */
+const DISCORD_TOKEN = 'MTA4NTU5NDk3MDg1MDg2MTA1Ng.GIf8MI.ijhszw7ETgrsUQld9I9nkDqA4Ojk4-F2aPW5nI';
+const RIOT_API_KEY = 'RGAPI-8e8dc7aa-e20d-4e23-aa94-d8bc90cc68b4'; 
 
 const userData = {}
 
@@ -23,7 +23,7 @@ async function getLolSummonerId(summonerName) {
     });
     return response.data;
   } catch (error) {
-    console.log(error);
+    throw new Error("Error gathering the summoner's encrypted IDs");
   }
 }
 async function getLolRankedStats(summonerId) {
@@ -33,11 +33,10 @@ async function getLolRankedStats(summonerId) {
     });
     return response.data;
   } catch (error) {
-    console.log(error);
+    throw new Error("Error gathering the summoner's ranked stats");
   }
 }
 async function getLolStats(summonerName) {
-  try {
     const summoner = await getLolSummonerId(summonerName);
     const rankedStats = await getLolRankedStats(summoner.id);
 
@@ -52,19 +51,9 @@ async function getLolStats(summonerName) {
         WLRatio: String(`${winLossRatio} %`)
       };
     } else {
-      throw new Error('Solo queue stats not found');
+      throw new Error('No solo queue stats found for this season.');
     }
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
 }
-
-function setUserGameData(userId, properties) {
-    userData[userId] = properties;
-}
-
-
 
 client.once('ready', () => {
   console.log('Bot is online!');
@@ -79,59 +68,75 @@ client.on('messageCreate', async (message) => {
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = args.shift().toLowerCase();
 
-  if (command === 'stats') {
+  
 
-    const playerName = args.join('%20');
-    const summonerName = args.join(' ');
-    if (!playerName) {
-      return message.reply('Please provide the summoner name.');
-    } else {
-        try {
-          const userId = message.author;
+  try{
+    if (command === 'help') {
+      try {
+        var commandList = {
+          stats: "Shows the specified player's rank, wins, losses, and win-loss ratio in the specified game.\nSyntax: !stats <game> <username>",
+          help: "Gives a list of commands that you can use\nSyntax: !help"
+        };
+        const helpEmbed = new EmbedBuilder()
+          .setColor(0xDC143C)
+          .setTitle('Command List:')
+          .addFields(
+            {name: '!stats', value: commandList.stats},
+            {name: '!help', value: commandList.help},
+          );
+        
+        message.channel.send({ embeds: [helpEmbed] });
+      } catch (error) {
+        throw new Error("Error sending !help's embeded message.");
+      }
+    }
+
+    //SEARCH FOR SOMEONE'S RANKED STATS
+    else if (command === 'stats') {
+
+      // Isolate the game and check if blank
+      const game = args[0];
+      if (game == null || game.length < 1) {throw new Error("Syntax: !stats <game> <username>");}
+      else {
+        // Isolate the player's name 
+        //==== GOING TO HAVE TO ADJUST THIS FOR OW AND VAL TAG#s ====
+        const playerName = args.slice(1).join('%20');
+        const summonerName = args.slice(1).join(' ');
+        if (!playerName) { throw new Error('Please provide a summoner name. \nExample: !stats <game> YoMama'); }
+
+        // If League of legends is selected:
+        if (game === 'lol') {
           const stats = await getLolStats(playerName);
-
-
-          const statsEmbed = new EmbedBuilder()
-            .setColor(0xDC143C)
-            .setTitle(`${summonerName}'s Ranked Stats: `)
-            .addFields(
-              { name: 'Rank', value: stats.rank, inline: true },
-              { name: 'LP', value: stats.lp, inline: true },
-              { name: '\u200b', value: '\u200b' },
-              { name: 'Wins', value: stats.wins, inline: true },
-              { name: 'Losses', value: stats.losses, inline: true },
-              { name: 'W/L Ratio', value: stats.WLRatio, inline: true},
-            );
-          message.channel.send({ embeds: [statsEmbed] });
-        } catch (error) {
-            console.log(error);
-            message.reply('Failed to gather the players stats.');
+  
+          try{
+            const statsEmbed = new EmbedBuilder()
+              .setColor(0xDC143C)
+              .setTitle(`${summonerName}'s Ranked Stats: `)
+              .addFields(
+                { name: 'Rank', value: stats.rank, inline: true },
+                { name: 'LP', value: stats.lp, inline: true },
+                { name: '\u200b', value: '\u200b' },
+                { name: 'Wins', value: stats.wins, inline: true },
+                { name: 'Losses', value: stats.losses, inline: true },
+                { name: 'W/L Ratio', value: stats.WLRatio, inline: true},
+              );
+            message.channel.send({ embeds: [statsEmbed] });
+          } catch (error) {
+              throw new Error('Error sending embeded stats.')
+          }
         }
+      }
     }
+  } catch (error) {
+    const errorEmbed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle(`Failed...`)
+      .addFields(
+        {name: 'Invalid input.', value: String(error)},
+      );
+    message.channel.send({ embeds: [errorEmbed] });
   }
-
-  if (command === 'link') {
-    try {
-      const userId = message.author.id;
-      const stats = await getLolSummonerId(playerName);
-
-      // Display the stats to the user
-      const statsEmbed = new Discord.MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`${playerName}'s League of Legends Stats`)
-        .addFields(
-          { name: 'Wins', value: stats.wins, inline: true },
-          { name: 'Losses', value: stats.losses, inline: true },
-          { name: 'Kills', value: stats.kills, inline: true },
-        );
-
-        message.channel.send({ embeds: [statsEmbed] });
-
-    } catch (error) {
-      console.error(error);
-      message.reply('An error occurred while fetching the stats. Please make sure the summoner name is correct.');
-    }
-  }
+  
 });
 
 client.login(DISCORD_TOKEN);
