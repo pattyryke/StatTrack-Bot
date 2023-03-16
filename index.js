@@ -1,4 +1,4 @@
-const { Client, IntentsBitField, GatewayIntentBits, Message } = require('discord.js');
+const { Client, IntentsBitField, Message, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
 
 const bits = new IntentsBitField()
@@ -6,52 +6,64 @@ const bits = new IntentsBitField()
 const client = new Client({
     intents: ["Guilds", "MessageContent", "GuildMessages"], partials: ["CHANNEL"],
 });
-const DISCORD_TOKEN = 'MTA4NTU5NDk3MDg1MDg2MTA1Ng.GtBaT6.13LrmCIBPaQmwr9Gxepjkj0mQy_ddr1EfUjVTg';
-const RIOT_API_KEY = 'RGAPI-22ee49c4-73b1-486c-9c28-748f6cd9b08f';
 
+const baseURL = "https://na1.api.riotgames.com/lol/"
+const summonerURL = `${baseURL}summoner/v4/summoners/by-name/`
+const leaguev4URL = `${baseURL}league/v4/entries/by-summoner/`
+
+const DISCORD_TOKEN = 'MTA4NTU5NDk3MDg1MDg2MTA1Ng.GtBaT6.13LrmCIBPaQmwr9Gxepjkj0mQy_ddr1EfUjVTg';
+const RIOT_API_KEY = 'RGAPI-222bd06e-c114-48bd-b53e-c820fe0240e0';
 
 const userData = {}
+
+async function getLolSummonerId(summonerName) {
+  try {
+    const response = await axios.get(`${summonerURL}${summonerName}?api_key=${RIOT_API_KEY}`, {
+      responseType: 'json'
+    });
+    return response.data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+async function getLolRankedStats(summonerId) {
+  try {
+    const response = await axios.get(`${leaguev4URL}${summonerId}?api_key=${RIOT_API_KEY}`, {
+      responseType: 'json'
+    });
+    return response.data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+async function getLolStats(summonerName) {
+  try {
+    const summoner = await getLolSummonerId(summonerName);
+    const rankedStats = await getLolRankedStats(summoner.id);
+
+    const soloQueueStats = rankedStats.find(stat => stat.queueType === 'RANKED_SOLO_5x5');
+    if(soloQueueStats) {
+      const winLossRatio = (soloQueueStats.wins/(soloQueueStats.wins+soloQueueStats.losses))*100;
+      return {
+        rank: String(`${soloQueueStats.tier} ${soloQueueStats.rank}`),
+        lp: String(soloQueueStats.leaguePoints),
+        wins: String(soloQueueStats.wins),
+        losses: String(soloQueueStats.losses),
+        WLRatio: String(`${winLossRatio} %`)
+      };
+    } else {
+      throw new Error('Solo queue stats not found');
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
 
 function setUserGameData(userId, properties) {
     userData[userId] = properties;
 }
 
-async function getLoLStats(userId, summonerName) {
-  const baseURL = "https://na1.api.riotgames.com/lol/"
-  const summonerURL = `${baseURL}summoner/v4/summoners/by-name/`
-  const leaguev4URL = `${baseURL}league/v4/entries/by-summoner/`
-  try {
-    var test;
-    axios.get(`${summonerURL}${encodeURIComponent(summonerName)}?api_key=${RIOT_API_KEY}`)
-        .then(function (response) {
-            console.log(response);
-        })
-        .catch(function (error) {
-            console.log(error)
-        })
-        .finally(function () {
-            test = response.id
-        })
-  } catch {console.log(summonerURL)}
-  axios.get(`${baseURL}${leaguev4URL}${test}?api_key=${RIOT_API_KEY}`)
-    .then(function (response) {
-        console.log(response.data);
-        console.log(response.status);
-        console.log(response.statusText);
-        console.log(response.headers);
-        console.log(response.config);
-      });
-  // Fetch match history or other stats using the accountId
-  // You can refer to the Riot Games API documentation to obtain the desired stats
-  
-  setUserGameData(userId, {
-    lol: {
-    }
-  });
-  return (
-    console.log(lolStats)
-  );
-}
 
 
 client.once('ready', () => {
@@ -64,28 +76,44 @@ client.on('messageCreate', async (message) => {
 
   // Command handling logic
   const prefix = '!';
-  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const command = args.shift().toLowerCase();
-  console.log(args)
-  if (command === 'link') {
-    const playerName = args.join(' ');
-    console.log(playerName)
+
+  if (command === 'stats') {
+
+    const playerName = args.join('%20');
+    const summonerName = args.join(' ');
     if (!playerName) {
       return message.reply('Please provide the summoner name.');
     } else {
         try {
-            const userId = message.author
-            getLoLStats(playerName)
+          const userId = message.author;
+          const stats = await getLolStats(playerName);
 
-        } catch {
-            message.reply('Failed to gather the players stats.')
+
+          const statsEmbed = new EmbedBuilder()
+            .setColor(0xDC143C)
+            .setTitle(`${summonerName}'s Ranked Stats: `)
+            .addFields(
+              { name: 'Rank', value: stats.rank, inline: true },
+              { name: 'LP', value: stats.lp, inline: true },
+              { name: '\u200b', value: '\u200b' },
+              { name: 'Wins', value: stats.wins, inline: true },
+              { name: 'Losses', value: stats.losses, inline: true },
+              { name: 'W/L Ratio', value: stats.WLRatio, inline: true},
+            );
+          message.channel.send({ embeds: [statsEmbed] });
+        } catch (error) {
+            console.log(error);
+            message.reply('Failed to gather the players stats.');
         }
     }
   }
 
-  if (command === 'stats') {
+  if (command === 'link') {
     try {
-      const stats = await getLoLStats(playerName);
+      const userId = message.author.id;
+      const stats = await getLolSummonerId(playerName);
 
       // Display the stats to the user
       const statsEmbed = new Discord.MessageEmbed()
