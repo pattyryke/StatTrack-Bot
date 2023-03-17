@@ -1,5 +1,8 @@
 const { Client, IntentsBitField, Message, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+require('dotenv').config();
+console.log(process.env.discord_api_key);
+
 
 const bits = new IntentsBitField()
 
@@ -16,9 +19,8 @@ const valBaseURL = "https://api.henrikdev.xyz"
 const valAccInfoURL = "/valorant/v1/account/"
 const valStatsURL = "/valorant/v2/by-puuid/mmr/na/"
 
-const DISCORD_TOKEN = 'MTA4NTU5NDk3MDg1MDg2MTA1Ng.G82xgQ.aPyT7rjVD9qYBfGaZz1Swbr-3xJhI1fW_2W6Iw';
-const RIOT_API_KEY = 'RGAPI-7c7d3192-e79b-419d-ac4a-4ddf2aae81d7'; 
-const TRACKER_GG_API = 'ad907fca-da9b-4f33-8d46-18637311b43b';
+const DISCORD_TOKEN = process.env.discord_api_key;
+const RIOT_API_KEY = process.env.riot_api_key; 
 
 const userData = {}
 
