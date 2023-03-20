@@ -57,13 +57,13 @@ async function getLolStats(summonerName) {
 
     const soloQueueStats = rankedStats.find(stat => stat.queueType === 'RANKED_SOLO_5x5');
     if(soloQueueStats) {
-      const winLossRatio = (soloQueueStats.wins/(soloQueueStats.wins+soloQueueStats.losses))**100;
+      const winLossRatio = String((soloQueueStats.wins/(soloQueueStats.wins+soloQueueStats.losses))*100);
       return {
         rank: String(`${soloQueueStats.tier} ${soloQueueStats.rank}`),
         lp: String(soloQueueStats.leaguePoints),
         wins: String(soloQueueStats.wins),
         losses: String(soloQueueStats.losses),
-        WLRatio: String(`${winLossRatio} %`)
+        WLRatio: String(`${winLossRatio.substring(0,5)} %`)
       };
     } else {
       throw new Error('No solo queue stats found for this season.');
@@ -77,7 +77,6 @@ async function getValAccInfo(username, tag) {
     const response = await axios.get(`${valBaseURL}${valAccInfoURL}${username}/${tag}`, {
       responseType: 'json'
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.log(error);
@@ -110,9 +109,8 @@ async function getValStats(username, tag) {
     const highRankSeason = highestStats.season;
     const wins = seasonStats.wins;
     const amountOfGames = seasonStats.number_of_games;
-    console.log(seasonStats);
 
-    const winLossRatio = ((wins)/(amountOfGames))**100;
+    const winLossRatio = String(((wins)/(amountOfGames))*100);
     const losses = (amountOfGames-wins)
     return {
       img: cardImg,
@@ -121,7 +119,7 @@ async function getValStats(username, tag) {
       highest_rank: (`${highRank} in ${highRankSeason}`),
       wins: String(`${wins}`),
       losses: String(`${losses}`),
-      WLRatio: String(`${winLossRatio} %`)
+      WLRatio: String(`${winLossRatio.substring(0,5)} %`)
     };
   }
 }
@@ -145,7 +143,6 @@ async function getOWPicture(battletag) {
     const response = await axios.get(`${owBaseURL}${owAccInfoURL}${battletag}/summary`, {
       responseType: 'json'
     });
-    console.log(response);
     return response.data.avatar;
   } catch {
     throw new Error("Error gathering Overwatch Account Thumbnail.")
@@ -259,7 +256,7 @@ client.on('messageCreate', async (message) => {
     if (command === 'help') {
       try {
         var commandList = {
-          stats: "Shows the specified player's rank, wins, losses, and win-loss ratio in the specified game.\nSyntax: !stats <game> <username>",
+          stats: "Shows the specified player's rank, wins, losses, and win-loss ratio in the specified game.\nSyntax: !stats <game> <username> (if needed <tag>)\nExamples:\n*!stats lol summoner_name\n!stats val username tag\n!stats ow username #tagnumber*",
           help: "Gives a list of commands that you can use\nSyntax: !help"
         };
         const helpEmbed = new EmbedBuilder()
@@ -300,13 +297,13 @@ client.on('messageCreate', async (message) => {
               .setTitle(`${usernameWithSpace}'s Ranked Stats: `)
               .setThumbnail(valStats.img)
               .addFields(
-                { name: 'Rank', value: valStats.rank, inline: true },
-                { name: 'Elo', value: valStats.elo, inline: true },
-                { name: 'Highest Rank', value: valStats.highest_rank, inline: true },
+                { name: '__***Rank***__', value: valStats.rank, inline: true },
+                { name: '__***Elo***__', value: valStats.elo, inline: true },
+                { name: '__***Highest Rank***__', value: valStats.highest_rank, inline: true },
                 { name: '\u200b', value: '\u200b' },
-                { name: 'Wins', value: valStats.wins, inline: true },
-                { name: 'Losses', value: valStats.losses, inline: true },
-                { name: 'W/L Ratio', value: valStats.WLRatio, inline: true},
+                { name: '__***Wins***__', value: valStats.wins, inline: true },
+                { name: '__***Losses***__', value: valStats.losses, inline: true },
+                { name: '__***W/L Ratio***__', value: valStats.WLRatio, inline: true},
               );
             message.channel.send({ embeds: [valStatsEmbed] });
           } catch (error) {
@@ -327,12 +324,12 @@ client.on('messageCreate', async (message) => {
               .setColor(0xDC143C)
               .setTitle(`${summonerName}'s Ranked Stats: `)
               .addFields(
-                { name: 'Rank', value: lolStats.rank, inline: true },
-                { name: 'LP', value: lolStats.lp, inline: true },
+                { name: '__***Rank***__', value: lolStats.rank, inline: true },
+                { name: '__***LP***__', value: lolStats.lp, inline: true },
                 { name: '\u200b', value: '\u200b' },
-                { name: 'Wins', value: lolStats.wins, inline: true },
-                { name: 'Losses', value: lolStats.losses, inline: true },
-                { name: 'W/L Ratio', value: lolStats.WLRatio, inline: true},
+                { name: '__***Wins***__', value: lolStats.wins, inline: true },
+                { name: '__***Losses***__', value: lolStats.losses, inline: true },
+                { name: '__***W/L Ratio***__', value: lolStats.WLRatio, inline: true},
               );
             message.channel.send({ embeds: [statsEmbed] });
           } catch (error) {
